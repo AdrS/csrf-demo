@@ -6,6 +6,9 @@ $ pip install twisted
 
 Run bank server on port 8080
 $ python csrf_bank_server.py 8080 
+# TODO: change the following variables
+USE_CSRF_TOKENS = True
+COOKIE_TOKENS = True
 
 Run another webserver on a different port to server Dr. Evil's website
 $ python -m SimpleHTTPServer 8000
@@ -124,5 +127,16 @@ Fixing this is simple. Create another webpage and add this HTML:
 Now when the user visits this new page, the evil page still loads and runs,
 but the <iframe> it loads in is hidden, so the user won't notice.
 
+# CSRF Tokens
+To protect against CSRF attacks, requests should require information the
+attacker does not know and the user does not automatically provide. One
+way is for the server to generate a random "csrf token."
+The site then adds the additional field to forms it gives to the user.
 
-TODO: demo different types of CSRF tokens
+	<input type="hidden" name="csrf_token" value="dgL2+Ur3367X+HZni8Ybyg==" />
+	<!-- value is whatever token the server just generated -->
+
+Because the form with the random token is returned to the user, the attacker
+does not know the token value. When a form is submitted the server compares
+the token with what it generated.
+The server can either save copies or give then to users to save as cookies.
