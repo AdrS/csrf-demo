@@ -14,19 +14,22 @@ from twisted.internet import reactor, endpoints
 from twisted.web.util import redirectTo
 
 users = {
-	'victim': {'password':'unhashed', 'session_cookie': None, 'balance': 10000},
-	'dr evil': {'password':'mini me', 'session_cookie': None, 'balance': 0}
+	'victim': {'username': 'victim', 'password':'unhashed', 'session_cookie': None, 'balance': 10000, 'tokens':set()},
+	'dr evil': {'username': 'dr evil', 'password':'mini me', 'session_cookie': None, 'balance': 0, 'tokens':set()}
 }
+
+USE_CSRF_TOKENS = False
+COOKIE_TOKENS = True
+
+def genRandom():
+	return base64.b64encode(os.urandom(16))
 
 def getUser(session_cookie):
 	if not session_cookie: return None
 	for username in users:
 		user = users[username]
 		if user['session_cookie'] == session_cookie:
-			return {
-				'username': username,
-				'balance': user['balance']
-			}
+			return user
 	return None
 
 class BankSite(resource.Resource):
@@ -57,9 +60,8 @@ class BankSite(resource.Resource):
 			return self.error('invalid user name or password')
 
 		#give then session cookie
-		session_cookie = base64.b64encode(os.urandom(16))
+		session_cookie = genRandom()
 		user['session_cookie'] = session_cookie
-		#TODO: set secure=True
 		request.addCookie('session_cookie', session_cookie)
 		return redirectTo('/', request)
 
@@ -71,6 +73,12 @@ class BankSite(resource.Resource):
 
 	def transfer(self, request):
 		params = urlparse.parse_qs(request.content.read())
+
+		session_cookie = request.getCookie('session_cookie')
+		user = getUser(session_cookie)
+
+		if not user:
+			return self.error('you are not logged in')
 		if 'dest' not in params or 'amount' not in params:
 			return self.error('invalid post request')
 		dest = params['dest'][0]
@@ -83,11 +91,16 @@ class BankSite(resource.Resource):
 		if dest not in users:
 			return self.error('recipient not found')
 
-		session_cookie = request.getCookie('session_cookie')
-		user = getUser(session_cookie)
+		if USE_CSRF_TOKENS:
+			if 'csrf_token' not in params:
+				return self.error('invalid post request')
 
-		if not user:
-			return self.error('you are not logged in')
+			# Check CSRF token
+			if  not COOKIE_TOKENS and params['csrf_token'][0] not in user['tokens']:
+				return self.error('invalid token')
+			elif COOKIE_TOKENS and params['csrf_token'][0] != request.getCookie('csrf_token'):
+				return self.error('invalid token')
+
 		if int(amount) > user['balance']:
 			return self.error('insufficient funds')
 
@@ -115,7 +128,8 @@ class BankSite(resource.Resource):
 		if user:
 			username = cgi.escape(user['username'])
 			balance  = user['balance']
-			return '''
+
+			template = '''
 <html>
 <body>
 <h1>Bank of CSRF</h1>
@@ -123,11 +137,23 @@ class BankSite(resource.Resource):
 	%s's balance: %d</br>
 	Destination account: <input type="text" name="dest" /></br>
 	Transfer amount: <input type="number" name="amount" min="0" max="%d" /></br>
+	%s
 	<input type="submit" value="Transfer" />
 </form>
 <a href="/logout">Logout</a>
 </body>
-</html>''' % (username, balance, balance)
+</html>'''
+			print(user)
+			csrf_token = None
+			if USE_CSRF_TOKENS:
+				csrf_token = genRandom()
+				if COOKIE_TOKENS:
+					request.addCookie('csrf_token', csrf_token)
+				else:
+					user['tokens'].add(csrf_token)
+
+			optional_token = '<input type="hidden" name="csrf_token" value="%s" />' % cgi.escape(csrf_token) if csrf_token else ''
+			return template % (username, balance, balance, optional_token)
 		else:
 			return  '''
 <html>

@@ -4,6 +4,8 @@
 	<form action="http://localhost:8080/transfer" method="post" id="form">
 		Destination account: <input type="text" name="dest" value="dr evil"/>
 		Transfer amount: <input type="number" name="amount" value="666" />
+
+		Attack should not have access to token <input type="hidden" name="csrf_token" value="I don't know" />
 		<input type="submit" value="Transfer" />
 	</form>
 	<script>
