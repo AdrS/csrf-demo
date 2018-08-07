@@ -32,12 +32,12 @@ from one account to another provided the session cookie as form parameters
 are valid.
 
 To send arbitrary post requests to the server use:
-$ curl -L -d "post request body" http://localhost:8080/login/
+$ curl -L -d "post request body" http://localhost:8080/login
 
 Note: the -L flag tells curl to follow redirects.
 
 example: 
-$ curl -L -v -d "username=dr evil&password=mini me" http://localhost:8080/login/
+$ curl -L -v -d "username=dr evil&password=mini me" http://localhost:8080/login
 
 Note: the -v flag causes curl to display reply headers which include any
 	Set-Cookie headers.
@@ -123,3 +123,6 @@ Fixing this is simple. Create another webpage and add this HTML:
 
 Now when the user visits this new page, the evil page still loads and runs,
 but the <iframe> it loads in is hidden, so the user won't notice.
+
+
+TODO: demo different types of CSRF tokens
